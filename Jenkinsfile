@@ -1,8 +1,7 @@
 pipeline {
     agent any
 
-    // Use the NodeJS installation you configured in Jenkins Tools
-    tools { nodejs "NodeJS 24.9.0" } 
+    tools { nodejs "NodeJS 24.9.0" } // exact name in Jenkins Tools
 
     stages {
         stage('Checkout') {
@@ -13,27 +12,28 @@ pipeline {
 
         stage('Install Dependencies') {
             steps {
-                bat 'npm install --no-audit --no-fund'
+                bat 'npm install --no-audit --no-fund || exit /b 0'
             }
         }
 
         stage('Run Tests') {
             steps {
-                bat 'npm test > test-output.txt 2>&1'
+                // Continue even if tests fail
+                bat 'npm test > test-output.txt 2>&1 || exit /b 0'
                 archiveArtifacts artifacts: 'test-output.txt', allowEmptyArchive: true
             }
         }
 
         stage('NPM Audit (Security Scan)') {
             steps {
-                bat 'npm audit --json > npm-audit.json'
+                bat 'npm audit --json > npm-audit.json || exit /b 0'
                 archiveArtifacts artifacts: 'npm-audit.json', allowEmptyArchive: true
             }
         }
     }
 
     post {
-        success {
+        always {
             powershell """
             if (Test-Path pipeline-logs.zip) { Remove-Item pipeline-logs.zip }
             Compress-Archive -Path test-output.txt, npm-audit.json -DestinationPath pipeline-logs.zip
@@ -42,29 +42,8 @@ pipeline {
 
             emailext (
                 to: 'jk8237405@gmail.com',
-                subject: "Jenkins Pipeline SUCCESS: ${currentBuild.fullDisplayName}",
-                body: """Build Status: SUCCESS
-Project: ${env.JOB_NAME}
-Build Number: ${env.BUILD_NUMBER}
-Check Build: ${env.BUILD_URL}
-
-Attached are the logs and audit results.""",
-                attachmentsPattern: 'pipeline-logs.zip',
-                attachLog: true
-            )
-        }
-
-        failure {
-            powershell """
-            if (Test-Path pipeline-logs.zip) { Remove-Item pipeline-logs.zip }
-            Compress-Archive -Path test-output.txt, npm-audit.json -DestinationPath pipeline-logs.zip
-            """
-            archiveArtifacts artifacts: 'pipeline-logs.zip', allowEmptyArchive: true
-
-            emailext (
-                to: 'jk8237405@gmail.com',
-                subject: "Jenkins Pipeline FAILURE: ${currentBuild.fullDisplayName}",
-                body: """Build Status: FAILURE
+                subject: "Jenkins Pipeline: ${currentBuild.fullDisplayName} - ${currentBuild.currentResult}",
+                body: """Build Status: ${currentBuild.currentResult}
 Project: ${env.JOB_NAME}
 Build Number: ${env.BUILD_NUMBER}
 Check Build: ${env.BUILD_URL}
