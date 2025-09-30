@@ -44,7 +44,7 @@ pipeline {
                 }
 
                 emailext(
-                    to: 'jk8237405@gmail.com',
+                    to: jk8237405@gmail.com,
                     subject: "Jenkins Pipeline: ${currentBuild.fullDisplayName} - ${currentBuild.currentResult}",
                     body: """Build Status: ${currentBuild.currentResult}
 Project: ${env.JOB_NAME}
