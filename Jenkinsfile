@@ -31,8 +31,24 @@ pipeline {
 
   post {
     always {
+      // Archive pipeline logs
       bat 'tar -czf pipeline-logs.tar.gz test-output.txt npm-audit.json || exit /b 0'
       archiveArtifacts artifacts: 'pipeline-logs.tar.gz', allowEmptyArchive: true
+
+      // Send email notification
+      emailext (
+        to: 'jk8237405@gmail.com', 
+        subject: "Jenkins Pipeline: ${currentBuild.fullDisplayName} - ${currentBuild.currentResult}",
+        body: """\
+          Build Status: ${currentBuild.currentResult}
+          Project: ${env.JOB_NAME}
+          Build Number: ${env.BUILD_NUMBER}
+          Check Build: ${env.BUILD_URL}
+
+          Attached are the logs and audit results.
+        """,
+        attachLog: true
+      )
     }
   }
 }
