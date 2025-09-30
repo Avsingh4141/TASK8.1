@@ -28,6 +28,13 @@ pipeline {
       }
     }
   }
+  stage('Check Node') {
+    steps {
+        bat 'node -v'
+        bat 'npm -v'
+    }
+}
+
 
   post {
     always {
