@@ -35,7 +35,6 @@ pipeline {
 
     post {
         always {
-            echo "Creating logs ZIP..."
             powershell """
             \$ErrorActionPreference = 'Stop'
             if (Test-Path pipeline-logs.zip) { Remove-Item pipeline-logs.zip }
@@ -44,29 +43,29 @@ pipeline {
 
             archiveArtifacts artifacts: 'pipeline-logs.zip', allowEmptyArchive: true
 
-            // Check if ZIP exists and send email accordingly
-            if (fileExists('pipeline-logs.zip')) {
-                echo "Sending email with attachment..."
-                emailext(
-                    to: 'jk8237405@gmail.com',
-                    subject: "Jenkins Pipeline: ${currentBuild.fullDisplayName} - ${currentBuild.currentResult}",
-                    body: """Build Status: ${currentBuild.currentResult}
+            // Use script block to allow Groovy logic
+            script {
+                if (fileExists('pipeline-logs.zip')) {
+                    emailext(
+                        to: 'jk8237405@gmail.com',
+                        subject: "Jenkins Pipeline: ${currentBuild.fullDisplayName} - ${currentBuild.currentResult}",
+                        body: """Build Status: ${currentBuild.currentResult}
 Project: ${env.JOB_NAME}
 Build Number: ${env.BUILD_NUMBER}
 Check Build: ${env.BUILD_URL}""",
-                    attachmentsPattern: 'pipeline-logs.zip',
-                    attachLog: true
-                )
-            } else {
-                echo "ZIP file not found, sending email without attachment..."
-                emailext(
-                    to: 'jk8237405@gmail.com',
-                    subject: "Jenkins Pipeline: ${currentBuild.fullDisplayName} - ${currentBuild.currentResult}",
-                    body: """Build Status: ${currentBuild.currentResult}
+                        attachmentsPattern: 'pipeline-logs.zip',
+                        attachLog: true
+                    )
+                } else {
+                    emailext(
+                        to: 'jk8237405@gmail.com',
+                        subject: "Jenkins Pipeline: ${currentBuild.fullDisplayName} - ${currentBuild.currentResult}",
+                        body: """Build Status: ${currentBuild.currentResult}
 Project: ${env.JOB_NAME}
 Build Number: ${env.BUILD_NUMBER}
 Check Build: ${env.BUILD_URL}"""
-                )
+                    )
+                }
             }
         }
     }
